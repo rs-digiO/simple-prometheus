@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prometheus Alerting Configuration Generator</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    
+    .header {
+      background-color: #e74c3c;
+      color: white;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      margin: 0;
+      color: white;
+    }
+    
+    .tab-container {
+      margin-bottom: 20px;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    
+    .tab.active {
+      background-color: #e74c3c;
+      color: white;
+      border-color: #e74c3c;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background-color: #c0392b;
+    }
+    
+    .output {
+      margin-top: 20px;
+      background-color: #f1f1f1;
+      padding: 20px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    
+    pre {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    
+    .btn-copy {
+      margin-top: 10px;
+      background-color: #3498db;
+    }
+    
+    .btn-copy:hover {
+      background-color: #2980b9;
+    }
+    
+    .dynamic-fields {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+    
+    .field-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .remove-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    
+    .add-btn {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    .info-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      background-color: #3498db;
+      color: white;
+      text-align: center;
+      border-radius: 50%;
+      cursor: help;
+      font-size: 12px;
+      line-height: 16px;
+      margin-left: 5px;
+    }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 250px;
+      background-color: #555;
+      color: #fff;
+      text-align: left;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -125px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Prometheus Alerting Configuration Generator</h1>
+    <p>Generate alerts, routes, and recording rules for Prometheus monitoring</p>
+  </div>
+  
+  <div class="tab-container">
+    <div class="tabs">
+      <div class="tab active" data-tab="alerts">Alert Rules</div>
+      <div class="tab" data-tab="routes">Alertmanager Routes</div>
+      <div class="tab" data-tab="recording">Recording Rules</div>
+    </div>
+    
+    <!-- Alert Rules Tab -->
+    <div id="alerts" class="tab-content active">
+      <h2>Create Prometheus Alert Rules</h2>
+      
+      <div class="form-group">
+        <label for="alert-name">Alert Name 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Name of the alert, should be in CamelCase format (e.g., HighCPUUsage)</span>
+          </span>
+        </label>
+        <input type="text" id="alert-name" placeholder="e.g., HighCPULoad">
+      </div>
+      
+      <div class="form-group">
+        <label for="alert-expr">Expression (PromQL) 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">PromQL expression that triggers this alert, e.g., 'cpu_usage_idle{job="node"} < 20'</span>
+          </span>
+        </label>
+        <input type="text" id="alert-expr" placeholder="e.g., cpu_usage_idle{job='node'} < 20">
+      </div>
+      
+      <div class="form-group">
+        <label for="alert-for">For Duration 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Time period the condition must be true before firing (e.g., 5m for 5 minutes)</span>
+          </span>
+        </label>
+        <input type="text" id="alert-for" placeholder="e.g., 5m">
+      </div>
+      
+      <div class="form-group">
+        <label>Labels</label>
+        <div id="alert-labels" class="dynamic-fields">
+          <div class="field-group">
+            <input type="text" placeholder="Key" class="label-key">
+            <input type="text" placeholder="Value" class="label-value">
+            <button class="remove-btn">×</button>
+          </div>
+        </div>
+        <button class="add-btn" id="add-label">Add Label</button>
+      </div>
+      
+      <div class="form-group">
+        <label>Annotations</label>
+        <div id="alert-annotations" class="dynamic-fields">
+          <div class="field-group">
+            <input type="text" placeholder="Key (e.g., summary)" class="annotation-key">
+            <input type="text" placeholder="Value" class="annotation-value">
+            <button class="remove-btn">×</button>
+          </div>
+        </div>
+        <button class="add-btn" id="add-annotation">Add Annotation</button>
+      </div>
+      
+      <button id="generate-alert">Generate Alert Rule</button>
+      
+      <div class="output">
+        <h3>YAML Output</h3>
+        <pre id="alert-output">Your generated alert rule will appear here.</pre>
+        <button class="btn-copy" id="copy-alert">Copy to Clipboard</button>
+      </div>
+    </div>
+    
+    <!-- Alertmanager Routes Tab -->
+    <div id="routes" class="tab-content">
+      <h2>Create Alertmanager Routes</h2>
+      
+      <div class="form-group">
+        <label for="route-receiver">Default Receiver 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Name of the receiver for this route (e.g., 'slack-notifications')</span>
+          </span>
+        </label>
+        <input type="text" id="route-receiver" placeholder="e.g., slack-notifications">
+      </div>
+      
+      <div class="form-group">
+        <label for="route-group-by">Group By 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Labels to group alerts by, comma-separated (e.g., 'alertname,cluster')</span>
+          </span>
+        </label>
+        <input type="text" id="route-group-by" placeholder="e.g., alertname,cluster,severity">
+      </div>
+      
+      <div class="form-group">
+        <label for="route-group-wait">Group Wait 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Wait time before sending a notification for new group (e.g., 30s)</span>
+          </span>
+        </label>
+        <input type="text" id="route-group-wait" placeholder="e.g., 30s">
+      </div>
+      
+      <div class="form-group">
+        <label for="route-group-interval">Group Interval 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Interval between sending notifications for a group (e.g., 5m)</span>
+          </span>
+        </label>
+        <input type="text" id="route-group-interval" placeholder="e.g., 5m">
+      </div>
+      
+      <div class="form-group">
+        <label for="route-repeat-interval">Repeat Interval 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Interval for repeating notifications (e.g., 3h)</span>
+          </span>
+        </label>
+        <input type="text" id="route-repeat-interval" placeholder="e.g., 3h">
+      </div>
+      
+      <div class="form-group">
+        <label>Match Conditions</label>
+        <div id="route-matchers" class="dynamic-fields">
+          <div class="field-group">
+            <input type="text" placeholder="Label" class="matcher-key">
+            <select class="matcher-op">
+              <option value="=">=</option>
+              <option value="!=">!=</option>
+              <option value="=~">=~ (regex match)</option>
+              <option value="!~">!~ (regex not match)</option>
+            </select>
+            <input type="text" placeholder="Value" class="matcher-value">
+            <button class="remove-btn">×</button>
+          </div>
+        </div>
+        <button class="add-btn" id="add-matcher">Add Matcher</button>
+      </div>
+      
+      <button id="generate-route">Generate Route Configuration</button>
+      
+      <div class="output">
+        <h3>YAML Output</h3>
+        <pre id="route-output">Your generated route configuration will appear here.</pre>
+        <button class="btn-copy" id="copy-route">Copy to Clipboard</button>
+      </div>
+    </div>
+    
+    <!-- Recording Rules Tab -->
+    <div id="recording" class="tab-content">
+      <h2>Create Prometheus Recording Rules</h2>
+      
+      <div class="form-group">
+        <label for="recording-name">Rule Name 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">Name of the new metric (e.g., 'node_memory_used_percent')</span>
+          </span>
+        </label>
+        <input type="text" id="recording-name" placeholder="e.g., node_memory_used_percent">
+      </div>
+      
+      <div class="form-group">
+        <label for="recording-expr">Expression (PromQL) 
+          <span class="tooltip">
+            <span class="info-icon">?</span>
+            <span class="tooltiptext">PromQL expression that defines this recording rule</span>
+          </span>
+        </label>
+        <input type="text" id="recording-expr" placeholder="e.g., 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)">
+      </div>
+      
+      <div class="form-group">
+        <label>Labels</label>
+        <div id="recording-labels" class="dynamic-fields">
+          <div class="field-group">
+            <input type="text" placeholder="Key" class="recording-label-key">
+            <input type="text" placeholder="Value" class="recording-label-value">
+            <button class="remove-btn">×</button>
+          </div>
+        </div>
+        <button class="add-btn" id="add-recording-label">Add Label</button>
+      </div>
+      
+      <button id="generate-recording">Generate Recording Rule</button>
+      
+      <div class="output">
+        <h3>YAML Output</h3>
+        <pre id="recording-output">Your generated recording rule will appear here.</pre>
+        <button class="btn-copy" id="copy-recording">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tab switching functionality
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Remove active class from all tabs and content
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          
+          // Add active class to clicked tab
+          tab.classList.add('active');
+          
+          // Show corresponding content
+          const tabId = tab.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+      
+      // Dynamic field functionality (add/remove fields)
+      function setupDynamicFields(addBtnId, containerSelector, fieldTemplate) {
+        const addBtn = document.getElementById(addBtnId);
+        const container = document.querySelector(containerSelector);
+        
+        addBtn.addEventListener('click', () => {
+          const newField = document.createElement('div');
+          newField.className = 'field-group';
+          newField.innerHTML = fieldTemplate;
+          container.appendChild(newField);
+          
+          // Add event listener to the new remove button
+          newField.querySelector('.remove-btn').addEventListener('click', () => {
+            container.removeChild(newField);
+          });
+        });
+        
+        // Setup existing remove buttons
+        container.querySelectorAll('.remove-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (container.children.length > 1) {
+              container.removeChild(btn.parentElement);
+            } else {
+              // Clear fields instead of removing the last row
+              btn.parentElement.querySelectorAll('input').forEach(input => {
+                input.value = '';
+              });
+              if (btn.parentElement.querySelector('select')) {
+                btn.parentElement.querySelector('select').selectedIndex = 0;
+              }
+            }
+          });
+        });
+      }
+      
+      // Alert Labels
+      setupDynamicFields('add-label', '#alert-labels', `
+        <input type="text" placeholder="Key" class="label-key">
+        <input type="text" placeholder="Value" class="label-value">
+        <button class="remove-btn">×</button>
+      `);
+      
+      // Alert Annotations
+      setupDynamicFields('add-annotation', '#alert-annotations', `
+        <input type="text" placeholder="Key (e.g., summary)" class="annotation-key">
+        <input type="text" placeholder="Value" class="annotation-value">
+        <button class="remove-btn">×</button>
+      `);
+      
+      // Route Matchers
+      setupDynamicFields('add-matcher', '#route-matchers', `
+        <input type="text" placeholder="Label" class="matcher-key">
+        <select class="matcher-op">
+          <option value="=">=</option>
+          <option value="!=">!=</option>
+          <option value="=~">=~ (regex match)</option>
+          <option value="!~">!~ (regex not match)</option>
+        </select>
+        <input type="text" placeholder="Value" class="matcher-value">
+        <button class="remove-btn">×</button>
+      `);
+      
+      // Recording Labels
+      setupDynamicFields('add-recording-label', '#recording-labels', `
+        <input type="text" placeholder="Key" class="recording-label-key">
+        <input type="text" placeholder="Value" class="recording-label-value">
+        <button class="remove-btn">×</button>
+      `);
+      
+      // Generate Alert Rules
+      document.getElementById('generate-alert').addEventListener('click', () => {
+        const name = document.getElementById('alert-name').value.trim();
+        const expr = document.getElementById('alert-expr').value.trim();
+        const forDuration = document.getElementById('alert-for').value.trim();
+        
+        if (!name || !expr) {
+          alert('Alert name and expression are required!');
+          return;
+        }
+        
+        // Collect labels
+        const labels = {};
+        document.querySelectorAll('#alert-labels .field-group').forEach(group => {
+          const key = group.querySelector('.label-key').value.trim();
+          const value = group.querySelector('.label-value').value.trim();
+          if (key && value) {
+            labels[key] = value;
+          }
+        });
+        
+        // Collect annotations
+        const annotations = {};
+        document.querySelectorAll('#alert-annotations .field-group').forEach(group => {
+          const key = group.querySelector('.annotation-key').value.trim();
+          const value = group.querySelector('.annotation-value').value.trim();
+          if (key && value) {
+            annotations[key] = value;
+          }
+        });
+        
+        // Build YAML output
+        let yaml = 'groups:\n- name: custom_alerts\n  rules:\n  - alert: ' + name + '\n';
+        yaml += '    expr: ' + expr + '\n';
+        if (forDuration) {
+          yaml += '    for: ' + forDuration + '\n';
+        }
+        
+        if (Object.keys(labels).length > 0) {
+          yaml += '    labels:\n';
+          for (const [key, value] of Object.entries(labels)) {
+            yaml += '      ' + key + ': ' + value + '\n';
+          }
+        }
+        
+        if (Object.keys(annotations).length > 0) {
+          yaml += '    annotations:\n';
+          for (const [key, value] of Object.entries(annotations)) {
+            yaml += '      ' + key + ': ' + value + '\n';
+          }
+        }
+        
+        document.getElementById('alert-output').textContent = yaml;
+      });
+      
+      // Generate Route Configuration
+      document.getElementById('generate-route').addEventListener('click', () => {
+        const receiver = document.getElementById('route-receiver').value.trim();
+        const groupBy = document.getElementById('route-group-by').value.trim();
+        const groupWait = document.getElementById('route-group-wait').value.trim();
+        const groupInterval = document.getElementById('route-group-interval').value.trim();
+        const repeatInterval = document.getElementById('route-repeat-interval').value.trim();
+        
+        if (!receiver) {
+          alert('Receiver name is required!');
+          return;
+        }
+        
+        // Collect matchers
+        const matchers = [];
+        document.querySelectorAll('#route-matchers .field-group').forEach(group => {
+          const key = group.querySelector('.matcher-key').value.trim();
+          const op = group.querySelector('.matcher-op').value;
+          const value = group.querySelector('.matcher-value').value.trim();
+          if (key && value) {
+            matchers.push(`${key}${op}"${value}"`);
+          }
+        });
+        
+        // Build YAML output
+        let yaml = 'route:\n';
+        yaml += '  receiver: ' + receiver + '\n';
+        
+        if (groupBy) {
+          const groups = groupBy.split(',').map(item => item.trim());
+          yaml += '  group_by: [' + groups.join(', ') + ']\n';
+        }
+        
+        if (groupWait) {
+          yaml += '  group_wait: ' + groupWait + '\n';
+        }
+        
+        if (groupInterval) {
+          yaml += '  group_interval: ' + groupInterval + '\n';
+        }
+        
+        if (repeatInterval) {
+          yaml += '  repeat_interval: ' + repeatInterval + '\n';
+        }
+        
+        if (matchers.length > 0) {
+          yaml += '  routes:\n';
+          yaml += '  - matchers: [' + matchers.join(', ') + ']\n';
+          yaml += '    receiver: ' + receiver + '\n';
+        }
+        
+        document.getElementById('route-output').textContent = yaml;
+      });
+      
+      // Generate Recording Rules
+      document.getElementById('generate-recording').addEventListener('click', () => {
+        const name = document.getElementById('recording-name').value.trim();
+        const expr = document.getElementById('recording-expr').value.trim();
+        
+        if (!name || !expr) {
+          alert('Rule name and expression are required!');
+          return;
+        }
+        
+        // Collect labels
+        const labels = {};
+        document.querySelectorAll('#recording-labels .field-group').forEach(group => {
+          const key = group.querySelector('.recording-label-key').value.trim();
+          const value = group.querySelector('.recording-label-value').value.trim();
+          if (key && value) {
+            labels[key] = value;
+          }
+        });
+        
+        // Build YAML output
+        let yaml = 'groups:\n- name: recording_rules\n  rules:\n  - record: ' + name + '\n';
+        yaml += '    expr: ' + expr + '\n';
+        
+        if (Object.keys(labels).length > 0) {
+          yaml += '    labels:\n';
+          for (const [key, value] of Object.entries(labels)) {
+            yaml += '      ' + key + ': ' + value + '\n';
+          }
+        }
+        
+        document.getElementById('recording-output').textContent = yaml;
+      });
+      
+      // Copy to Clipboard functionality
+      function setupCopyButton(btnId, outputId) {
+        document.getElementById(btnId).addEventListener('click', () => {
+          const output = document.getElementById(outputId).textContent;
+          navigator.clipboard.writeText(output).then(() => {
+            const btn = document.getElementById(btnId);
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => {
+              btn.textContent = originalText;
+            }, 2000);
+          });
+        });
+      }
+      
+      setupCopyButton('copy-alert', 'alert-output');
+      setupCopyButton('copy-route', 'route-output');
+      setupCopyButton('copy-recording', 'recording-output');
+    });
+  </script>
+</body>
+</html>
